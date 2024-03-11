@@ -17,24 +17,12 @@ export const registerSchema = z
         return value.toLowerCase();
       }),
     password: z.string({ required_error: 'Password is required' }),
-    dob: z
-      .string({ required_error: 'Date Of Birth is required' })
-      .transform((value, ctx) => {
-        const dob = new Date(value);
-
-        if (isNaN(dob.getTime()))
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'Invalid Date',
-          });
-
-        dob.setHours(0);
-        dob.setMinutes(0);
-        dob.setSeconds(0);
-
-        return dob;
-      }),
+    cpassword: z.string({ required_error: 'Confirm password is required' }),
   })
-  .strict();
+  .strict()
+  .refine((data) => data.password === data.cpassword, {
+    message: 'Passwords do not match',
+    path: ['cpassword'],
+  });
 
 export class registerDto extends createZodDto(registerSchema) {}

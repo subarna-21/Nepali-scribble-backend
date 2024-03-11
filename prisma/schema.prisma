@@ -19,7 +19,6 @@ model User {
   email     String     @unique
   password  String
   image     String?
-  dob       DateTime
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   progress  Progress[]
