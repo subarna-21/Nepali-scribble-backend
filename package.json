@@ -40,7 +40,9 @@
     "nestjs-zod": "^3.0.0",
     "node-gyp": "^10.0.1",
     "reflect-metadata": "^0.2.0",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "ssim.js": "^3.5.0",
+    "text-to-image": "^5.2.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",

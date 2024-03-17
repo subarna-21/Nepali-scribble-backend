@@ -1,56 +1,59 @@
+/* eslint-disable prefer-const */
 import { ConsoleLogger, Injectable } from '@nestjs/common';
 import * as tf from '@tensorflow/tfjs';
 import * as tfn from '@tensorflow/tfjs-node';
 import { CanvasRenderingContext2D, createCanvas, loadImage } from 'canvas';
+import * as textToImage from 'text-to-image';
+import ssim from 'ssim.js';
 // import * as canvas from 'ca'
 
 const training_set = {
-  0: 'character_10_yna',
-  1: 'character_11_taamatar',
-  2: 'character_12_thaa',
-  3: 'character_13_daa',
-  4: 'character_14_dhaa',
-  5: 'character_15_adna',
-  6: 'character_16_tabala',
-  7: 'character_17_tha',
-  8: 'character_18_da',
-  9: 'character_19_dha',
-  10: 'character_1_ka',
-  11: 'character_20_na',
-  12: 'character_21_pa',
-  13: 'character_22_pha',
-  14: 'character_23_ba',
-  15: 'character_24_bha',
-  16: 'character_25_ma',
-  17: 'character_26_yaw',
-  18: 'character_27_ra',
-  19: 'character_28_la',
-  20: 'character_29_waw',
-  21: 'character_2_kha',
-  22: 'character_30_motosaw',
-  23: 'character_31_petchiryakha',
-  24: 'character_32_patalosaw',
-  25: 'character_33_ha',
-  26: 'character_34_chhya',
-  27: 'character_35_tra',
-  28: 'character_36_gya',
-  29: 'character_3_ga',
-  30: 'character_4_gha',
-  31: 'character_5_kna',
-  32: 'character_6_cha',
-  33: 'character_7_chha',
-  34: 'character_8_ja',
-  35: 'character_9_jha',
-  36: 'digit_0',
-  37: 'digit_1',
-  38: 'digit_2',
-  39: 'digit_3',
-  40: 'digit_4',
-  41: 'digit_5',
-  42: 'digit_6',
-  43: 'digit_7',
-  44: 'digit_8',
-  45: 'digit_9',
+  0: 'ञ',
+  1: 'ट',
+  2: 'ठ',
+  3: 'ड',
+  4: 'ढ',
+  5: 'ण',
+  6: 'त',
+  7: 'थ',
+  8: 'द',
+  9: 'ध',
+  10: 'क',
+  11: 'न',
+  12: 'प',
+  13: 'फ',
+  14: 'ब',
+  15: 'भ',
+  16: 'म',
+  17: 'य',
+  18: 'र',
+  19: 'ल',
+  20: 'व',
+  21: 'ख',
+  22: 'श',
+  23: 'ष',
+  24: 'स',
+  25: 'ह',
+  26: 'क्ष',
+  27: 'त्र',
+  28: 'ज्ञ',
+  29: 'ग',
+  30: 'घ',
+  31: 'ङ',
+  32: 'च',
+  33: 'छ',
+  34: 'ज',
+  35: 'झ',
+  36: '०',
+  37: '१',
+  38: '२',
+  39: '३',
+  40: '४',
+  41: '५',
+  42: '६',
+  43: '७',
+  44: '८',
+  45: '९',
 };
 
 @Injectable()
@@ -59,6 +62,7 @@ export class ModelService {
   private model: tf.LayersModel;
   constructor() {
     const handler = tfn.io.fileSystem('./model/model.json');
+
     tf.loadLayersModel(handler)
       .then((model) => {
         this.model = model;
@@ -71,7 +75,7 @@ export class ModelService {
       });
   }
 
-  async predict(file: Express.Multer.File) {
+  async predict(file: Express.Multer.File): Promise<string> {
     const imgTensor = await this.loadImage(file);
     // Make prediction
     const example = this.model.predict(imgTensor) as tf.Tensor;
@@ -81,13 +85,11 @@ export class ModelService {
     // Determine the predicted class
     const predictedClassIndex = tf.argMax(prediction).dataSync()[0];
 
-    console.log(predictedClassIndex);
-
     // Here, you need to map the index to the corresponding class label
     const classLabels = Object.keys(training_set);
     const predictedClass = classLabels[predictedClassIndex];
 
-    console.log('Predicted class:', training_set[predictedClass]);
+    return training_set[predictedClass];
   }
 
   private async loadImage(file: Express.Multer.File) {
@@ -105,5 +107,77 @@ export class ModelService {
       .expandDims(0); // Add batch dimension
 
     return imgTensor;
+  }
+
+  private async generateImageFromChar(char: string) {
+    const imageUri = await textToImage.generate(char, {
+      debug: true,
+      maxWidth: 720,
+      fontSize: 18,
+      fontFamily: 'Preeti',
+      bgColor: 'white',
+      textColor: 'black',
+    });
+
+    const image = this.dataURLtoFile(imageUri, 'char.png');
+
+    return image;
+  }
+
+  private dataURLtoFile(dataurl: string, filename: string) {
+    let arr = dataurl.split(','),
+      mime = arr[0].match(/:(.*?);/)[1],
+      bstr = atob(arr[arr.length - 1]),
+      n = bstr.length,
+      u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  }
+
+  async checkSimilarity(testing: Express.Multer.File, tester: string) {
+    const test = await this.generateImageFromChar(tester);
+    const testingImage = await this.getImageDataFromFile(testing);
+    const testerImage = await this.getImageDataFromFile(test);
+
+    const sim = ssim(testingImage, testerImage, {
+      ssim: 'fast',
+    });
+
+    return sim;
+  }
+
+  private async getImageDataFromFile(
+    file: Express.Multer.File | File,
+  ): Promise<ImageData> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            resolve(ctx.getImageData(0, 0, img.width, img.height));
+          } else {
+            reject(new Error('Failed to create canvas context'));
+          }
+        };
+        if ('buffer' in file) {
+          img.src = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+        } else {
+          img.src = event.target?.result as string;
+        }
+      };
+      if ('buffer' in file) {
+        reader.readAsDataURL(new Blob([file.buffer]));
+      } else {
+        reader.readAsDataURL(file);
+      }
+    });
   }
 }

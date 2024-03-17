@@ -11,6 +11,7 @@ import { HttpResponse } from 'src/common/utils/http-response.util';
 import { loginDto } from './dto/login.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ModelService } from 'src/global/model/model.service';
+import { Public } from 'src/common/decorators/route-type.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -19,6 +20,7 @@ export class AuthController {
     private readonly modelService: ModelService,
   ) {}
 
+  @Public()
   @Post('register')
   async register(@Body() postData: registerDto): Promise<HttpResponse> {
     await this.service.register(postData);
@@ -28,6 +30,7 @@ export class AuthController {
     });
   }
 
+  @Public()
   @Post('login')
   async login(@Body() postData: loginDto): Promise<HttpResponse> {
     const data = await this.service.login(postData);
