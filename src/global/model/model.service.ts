@@ -58,9 +58,7 @@ export class ModelService {
   private readonly logger = new ConsoleLogger(ModelService.name);
   private model: tf.LayersModel;
   constructor() {
-    const handler = tfn.io.fileSystem(
-      '/Users/mac/aitc/college-projects/subarna/devanagari-character-recognition/model/model.json',
-    );
+    const handler = tfn.io.fileSystem('./model/model.json');
     tf.loadLayersModel(handler)
       .then((model) => {
         this.model = model;
