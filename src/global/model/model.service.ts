@@ -4,7 +4,7 @@ import * as tf from '@tensorflow/tfjs';
 import * as tfn from '@tensorflow/tfjs-node';
 import { CanvasRenderingContext2D, createCanvas, loadImage } from 'canvas';
 import * as textToImage from 'text-to-image';
-import ssim from 'ssim.js';
+// import ssim from 'ssim.js';
 // import * as canvas from 'ca'
 
 const training_set = {
@@ -136,48 +136,15 @@ export class ModelService {
     return new File([u8arr], filename, { type: mime });
   }
 
-  async checkSimilarity(testing: Express.Multer.File, tester: string) {
-    const test = await this.generateImageFromChar(tester);
-    const testingImage = await this.getImageDataFromFile(testing);
-    const testerImage = await this.getImageDataFromFile(test);
+  // async checkSimilarity(testing: Express.Multer.File, tester: string) {
+  //   const test = await this.generateImageFromChar(tester);
+  //   const testingImage = await this.getImageDataFromFile(testing);
+  //   const testerImage = await this.getImageDataFromFile(test);
 
-    const sim = ssim(testingImage, testerImage, {
-      ssim: 'fast',
-    });
+  //   const sim = ssim(testingImage, testerImage, {
+  //     ssim: 'fast',
+  //   });
 
-    return sim;
-  }
-
-  private async getImageDataFromFile(
-    file: Express.Multer.File | File,
-  ): Promise<ImageData> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0);
-            resolve(ctx.getImageData(0, 0, img.width, img.height));
-          } else {
-            reject(new Error('Failed to create canvas context'));
-          }
-        };
-        if ('buffer' in file) {
-          img.src = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
-        } else {
-          img.src = event.target?.result as string;
-        }
-      };
-      if ('buffer' in file) {
-        reader.readAsDataURL(new Blob([file.buffer]));
-      } else {
-        reader.readAsDataURL(file);
-      }
-    });
-  }
+  //   return sim;
+  // }
 }

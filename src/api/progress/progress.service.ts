@@ -52,10 +52,10 @@ export class ProgressService {
 
     const prediction = await this.model.predict(data.postData);
 
-    const ssim = await this.model.checkSimilarity(data.postData, current.char);
+    // const ssim = await this.model.checkSimilarity(data.postData, current.char);
 
     console.log(prediction);
-    console.log(ssim);
+    // console.log(ssim);
 
     if (current.char !== prediction)
       throw new BadRequestException('Could not predict');

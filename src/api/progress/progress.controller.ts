@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   Post,
@@ -42,7 +43,9 @@ export class ProgressController {
   async createOrUpdateProgress(
     @LoggedUser() loggedUser: LoggedUser,
     @UploadedFile() file: Express.Multer.File,
+    @Body() body: any,
   ): Promise<HttpResponse> {
+    console.log(body);
     console.log(file);
     if (!file) throw new BadRequestException('asdj');
     await this.service.createOrUpdateProgress({
