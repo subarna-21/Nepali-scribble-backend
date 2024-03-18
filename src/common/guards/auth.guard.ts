@@ -46,11 +46,6 @@ export class AuthGuard implements CanActivate {
         where: {
           id: payload.id,
         },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
       });
 
       if (!user) return false;
