@@ -24,8 +24,6 @@ export class ProfileService {
         throw new ConflictException('Could not upload image');
       });
 
-    console.log(data.loggedUser);
-
     if (data.loggedUser.image) {
       await this.cloudinary.deleteImage(data.loggedUser.image).catch(() => {
         throw new ConflictException('Could not delete image');
