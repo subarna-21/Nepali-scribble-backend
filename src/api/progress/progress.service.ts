@@ -48,6 +48,7 @@ export class ProgressService {
   }
 
   async createOrUpdateProgress(data: CreateParam<Express.Multer.File>) {
+    // let accuracy = 0;
     const current = await this.getCurrentProgress(data.loggedUser);
 
     const prediction = await this.model.predict(data.postData);
@@ -57,7 +58,7 @@ export class ProgressService {
     console.log(prediction);
     // console.log(ssim);
 
-    if (current.char !== prediction)
+    if (current.char === prediction)
       throw new BadRequestException('Could not predict');
 
     // if (current.char) {

@@ -47,11 +47,13 @@ export class ProgressController {
     const compressor = sharp(file.buffer);
     const compressedBuffer = await compressor
       .resize({ width: 64, height: 64 })
-      .flatten({ background: { r: 0, g: 0, b: 0, alpha: 1 } })
+      .flatten({ background: { r: 255, g: 255, b: 255, alpha: 1 } })
+      .negate({
+        alpha: true,
+      })
       .toFormat('png')
       .toBuffer();
 
-    // const base64 = Buffer.from(compressedBuffer).toString('base64');
     if (!file) throw new BadRequestException('asdj');
     await this.service.createOrUpdateProgress({
       loggedUser,
