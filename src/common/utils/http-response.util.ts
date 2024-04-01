@@ -10,7 +10,7 @@ interface HttpResponseProps {
 }
 
 export class HttpResponse {
-  public readonly success: boolean;
+  public readonly status: boolean;
   public readonly message: string | undefined;
   public readonly docs: Record<string, unknown> | undefined;
   public readonly data:
@@ -36,9 +36,9 @@ export class HttpResponse {
     statusCode = statusCode ?? 200;
 
     if (statusCode >= 300) {
-      this.success = false;
+      this.status = false;
     } else {
-      this.success = true;
+      this.status = true;
     }
 
     this.message = message;

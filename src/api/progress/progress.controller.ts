@@ -55,7 +55,7 @@ export class ProgressController {
       .toBuffer();
 
     if (!file) throw new BadRequestException('asdj');
-    await this.service.createOrUpdateProgress({
+    const data = await this.service.createOrUpdateProgress({
       loggedUser,
       postData: {
         ...file,
@@ -63,6 +63,8 @@ export class ProgressController {
       },
     });
 
-    return new HttpResponse({});
+    return new HttpResponse({
+      data,
+    });
   }
 }

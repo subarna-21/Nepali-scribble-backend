@@ -1,16 +1,26 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
+import { Progress } from '@prisma/client';
 import { characters } from 'src/common/data';
+import { CloudinaryService } from 'src/global/cloudinary/cloudinary.service';
 import { ModelService } from 'src/global/model/model.service';
 import { PrismaService } from 'src/global/prisma/prisma.service';
+import { createWorker } from 'tesseract.js';
 
 @Injectable()
 export class ProgressService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly model: ModelService,
+    private readonly cloudinary: CloudinaryService,
   ) {}
 
-  async getCurrentProgress(data: LoggedUser) {
+  async getCurrentProgress(
+    data: LoggedUser,
+  ): Promise<Progress | { char: string }> {
     const progress = await this.prisma.progress.findFirst({
       where: {
         userId: data.id,
@@ -48,29 +58,101 @@ export class ProgressService {
   }
 
   async createOrUpdateProgress(data: CreateParam<Express.Multer.File>) {
-    // let accuracy = 0;
+    let accuracy = 20;
+    const worker = await createWorker('nep');
     const current = await this.getCurrentProgress(data.loggedUser);
 
     const prediction = await this.model.predict(data.postData);
+    const predictionX = await worker.recognize(data.postData.buffer);
 
     // const ssim = await this.model.checkSimilarity(data.postData, current.char);
 
-    console.log(prediction);
-    // console.log(ssim);
+    if (current.char === prediction) accuracy += 40;
 
-    if (current.char === prediction)
-      throw new BadRequestException('Could not predict');
+    if (current.char === predictionX.data.text.charAt(0)) accuracy += 40;
 
-    // if (current.char) {
-    //   await this.prisma.progress.update({
-    //     where: {
-    //       userId: data.loggedUser.id,
-    //     },
-    //     data: {
-    //       char: current.char,
-    //       completed: true,
-    //     },
-    //   });
-    // }
+    const image = await this.cloudinary
+      .uploadImage(data.postData, false)
+      .catch(() => {
+        throw new ConflictException('Could not upload image');
+      });
+
+    if (accuracy < 50)
+      if ('id' in current) {
+        if (current.noOfTry > 5) {
+          return await this.prisma.progress.update({
+            where: {
+              id: current.id,
+            },
+            data: {
+              accuracy,
+              noOfTry: {
+                increment: 1,
+              },
+              completed: true,
+              input: image.url,
+            },
+          });
+        }
+        await this.prisma.progress.update({
+          where: {
+            id: current.id,
+          },
+          data: {
+            accuracy,
+            noOfTry: {
+              increment: 1,
+            },
+            input: image.url,
+          },
+        });
+        throw new BadRequestException('Accuracy too low');
+      } else {
+        await this.prisma.progress.create({
+          data: {
+            char: current.char,
+            userId: data.loggedUser.id,
+            completed: false,
+            accuracy,
+            input: image.url,
+          },
+        });
+        throw new BadRequestException('Accuracy too low');
+      }
+
+    let progress: Progress | undefined;
+
+    if ('id' in current && current.id) {
+      await this.cloudinary.deleteImage(current.input).catch(() => {
+        throw new ConflictException('Could not delete image');
+      });
+
+      progress = await this.prisma.progress.update({
+        where: {
+          id: current.id,
+        },
+        data: {
+          char: current.char,
+          completed: true,
+          accuracy,
+          noOfTry: {
+            increment: 1,
+          },
+          input: image.url,
+        },
+      });
+    } else {
+      progress = await this.prisma.progress.create({
+        data: {
+          char: current.char,
+          userId: data.loggedUser.id,
+          completed: true,
+          accuracy,
+          input: image.url,
+        },
+      });
+    }
+
+    return progress;
   }
 }
