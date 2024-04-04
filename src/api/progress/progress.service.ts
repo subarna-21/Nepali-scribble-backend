@@ -155,4 +155,17 @@ export class ProgressService {
 
     return progress;
   }
+
+  async getAllProgress(data: LoggedUser) {
+    const progress = await this.prisma.progress.findMany({
+      where: {
+        userId: data.id,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return progress;
+  }
 }

@@ -67,4 +67,15 @@ export class ProgressController {
       data,
     });
   }
+
+  @Get()
+  async getProgress(
+    @LoggedUser() loggedUser: LoggedUser,
+  ): Promise<HttpResponse> {
+    const data = await this.service.getAllProgress(loggedUser);
+
+    return new HttpResponse({
+      data,
+    });
+  }
 }
