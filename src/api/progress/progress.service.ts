@@ -58,29 +58,44 @@ export class ProgressService {
   }
 
   async createOrUpdateProgress(data: CreateParam<Express.Multer.File>) {
-    let accuracy = 20;
-    const worker = await createWorker('nep');
-    const current = await this.getCurrentProgress(data.loggedUser);
+    try {
+      let accuracy = 20;
+      const worker = await createWorker('nep');
+      const current = await this.getCurrentProgress(data.loggedUser);
 
-    const prediction = await this.model.predict(data.postData);
-    const predictionX = await worker.recognize(data.postData.buffer);
+      const prediction = await this.model.predict(data.postData);
+      const predictionX = await worker.recognize(data.postData.buffer);
 
-    // const ssim = await this.model.checkSimilarity(data.postData, current.char);
+      // const ssim = await this.model.checkSimilarity(data.postData, current.char);
 
-    if (current.char === prediction) accuracy += 40;
+      if (current.char === prediction) accuracy += 40;
 
-    if (current.char === predictionX.data.text.charAt(0)) accuracy += 40;
+      if (current.char === predictionX.data.text.charAt(0)) accuracy += 40;
 
-    const image = await this.cloudinary
-      .uploadImage(data.postData, false)
-      .catch(() => {
-        throw new ConflictException('Could not upload image');
-      });
+      const image = await this.cloudinary
+        .uploadImage(data.postData, false)
+        .catch(() => {
+          throw new ConflictException('Could not upload image');
+        });
 
-    if (accuracy < 50)
-      if ('id' in current) {
-        if (current.noOfTry > 5) {
-          return await this.prisma.progress.update({
+      if (accuracy < 50)
+        if ('id' in current) {
+          if (current.noOfTry > 5) {
+            return await this.prisma.progress.update({
+              where: {
+                id: current.id,
+              },
+              data: {
+                accuracy,
+                noOfTry: {
+                  increment: 1,
+                },
+                completed: true,
+                input: image.url,
+              },
+            });
+          }
+          await this.prisma.progress.update({
             where: {
               id: current.id,
             },
@@ -89,16 +104,37 @@ export class ProgressService {
               noOfTry: {
                 increment: 1,
               },
-              completed: true,
               input: image.url,
             },
           });
+          throw new BadRequestException('Accuracy too low');
+        } else {
+          await this.prisma.progress.create({
+            data: {
+              char: current.char,
+              userId: data.loggedUser.id,
+              completed: false,
+              accuracy,
+              input: image.url,
+            },
+          });
+          throw new BadRequestException('Accuracy too low');
         }
-        await this.prisma.progress.update({
+
+      let progress: Progress | undefined;
+
+      if ('id' in current && current.id) {
+        await this.cloudinary.deleteImage(current.input).catch(() => {
+          throw new ConflictException('Could not delete image');
+        });
+
+        progress = await this.prisma.progress.update({
           where: {
             id: current.id,
           },
           data: {
+            char: current.char,
+            completed: true,
             accuracy,
             noOfTry: {
               increment: 1,
@@ -106,54 +142,22 @@ export class ProgressService {
             input: image.url,
           },
         });
-        throw new BadRequestException('Accuracy too low');
       } else {
-        await this.prisma.progress.create({
+        progress = await this.prisma.progress.create({
           data: {
             char: current.char,
             userId: data.loggedUser.id,
-            completed: false,
+            completed: true,
             accuracy,
             input: image.url,
           },
         });
-        throw new BadRequestException('Accuracy too low');
       }
 
-    let progress: Progress | undefined;
-
-    if ('id' in current && current.id) {
-      await this.cloudinary.deleteImage(current.input).catch(() => {
-        throw new ConflictException('Could not delete image');
-      });
-
-      progress = await this.prisma.progress.update({
-        where: {
-          id: current.id,
-        },
-        data: {
-          char: current.char,
-          completed: true,
-          accuracy,
-          noOfTry: {
-            increment: 1,
-          },
-          input: image.url,
-        },
-      });
-    } else {
-      progress = await this.prisma.progress.create({
-        data: {
-          char: current.char,
-          userId: data.loggedUser.id,
-          completed: true,
-          accuracy,
-          input: image.url,
-        },
-      });
+      return progress;
+    } catch (error) {
+      console.log(error);
     }
-
-    return progress;
   }
 
   async getAllProgress(data: LoggedUser) {
