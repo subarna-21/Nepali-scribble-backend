@@ -149,6 +149,7 @@ export class ProgressService {
           completed: true,
           accuracy,
           input: image.url,
+          noOfTry: 1,
         },
       });
     }
@@ -167,5 +168,29 @@ export class ProgressService {
     });
 
     return progress;
+  }
+
+  async resetAllProgress(data: LoggedUser) {
+    const progress = await this.prisma.progress.findMany({
+      where: {
+        userId: data.id,
+      },
+    });
+
+    for (const item of progress) {
+      await this.cloudinary.deleteImage(item.input).catch(() => {
+        throw new ConflictException('Could not delete image');
+      });
+    }
+
+    await this.prisma.progress.deleteMany({
+      where: {
+        userId: data.id,
+      },
+    });
+
+    return {
+      message: 'All progress deleted',
+    };
   }
 }

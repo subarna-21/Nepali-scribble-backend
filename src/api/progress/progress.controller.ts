@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Controller,
+  Delete,
   Get,
   Post,
   UploadedFile,
@@ -73,6 +74,17 @@ export class ProgressController {
     @LoggedUser() loggedUser: LoggedUser,
   ): Promise<HttpResponse> {
     const data = await this.service.getAllProgress(loggedUser);
+
+    return new HttpResponse({
+      data,
+    });
+  }
+
+  @Delete()
+  async resetProgress(
+    @LoggedUser() loggedUser: LoggedUser,
+  ): Promise<HttpResponse> {
+    const data = await this.service.resetAllProgress(loggedUser);
 
     return new HttpResponse({
       data,
