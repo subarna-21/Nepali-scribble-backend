@@ -56,7 +56,7 @@ export class AuthService {
       { id: valid.id },
       this.configService.get('JWT_SECRET'),
       {
-        expiresIn: '3d',
+        expiresIn: '365d',
       },
     );
 
