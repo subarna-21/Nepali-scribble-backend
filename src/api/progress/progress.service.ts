@@ -58,7 +58,7 @@ export class ProgressService {
   }
 
   async createOrUpdateProgress(data: CreateParam<Express.Multer.File>) {
-    let accuracy = 20;
+    let accuracy = Math.floor(Math.random() * 10) + 20;
     const worker = await createWorker('nep');
     const current = await this.getCurrentProgress(data.loggedUser);
 
