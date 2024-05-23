@@ -67,9 +67,17 @@ export class ProgressService {
 
     // const ssim = await this.model.checkSimilarity(data.postData, current.char);
 
-    if (current.char === prediction) accuracy += 40;
+    if (current.char === prediction) {
+      accuracy += Math.floor(Math.random() * 21) + 40;
+    }    
 
-    if (current.char === predictionX.data.text.charAt(0)) accuracy += 40;
+    if (current.char === predictionX.data.text.charAt(0))  {
+      accuracy += Math.floor(Math.random() * 21) + 40;
+    };
+
+    if(accuracy >= 100) {
+      accuracy = Math.floor(Math.random() * 8) + 90;
+    }
 
     const image = await this.cloudinary
       .uploadImage(data.postData, false)
@@ -115,6 +123,7 @@ export class ProgressService {
             completed: false,
             accuracy,
             input: image.url,
+            noOfTry: 1,
           },
         });
         throw new BadRequestException('Accuracy too low');
